@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduAnalytics Nacional — Sistema de Predicción de Riesgo Académico</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #070b14;
+    --surface:  #0d1425;
+    --card:     #111927;
+    --border:   #1e2d45;
+    --accent:   #00d4ff;
+    --accent2:  #7c3aff;
+    --accent3:  #ff6b35;
+    --danger:   #ff3b5c;
+    --warning:  #ffb800;
+    --success:  #00e5a0;
+    --text:     #e8f0fe;
+    --muted:    #5a7499;
+    --font-head: 'Syne', sans-serif;
+    --font-body: 'Space Grotesk', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Background mesh ─────────────────────────────────────────────────────── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 20%, rgba(0,212,255,.06) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 60% at 80% 80%, rgba(124,58,255,.07) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 50% 50%, rgba(255,107,53,.03) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Sidebar ─────────────────────────────────────────────────────────────── */
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 256px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    padding: 28px 0 20px;
+  }
+
+  .logo {
+    padding: 0 24px 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    margin-bottom: 10px;
+  }
+  .logo h1 {
+    font-family: var(--font-head);
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -.3px;
+    color: var(--text);
+  }
+  .logo span { color: var(--accent); }
+
+  nav { padding: 20px 0; flex: 1; }
+  .nav-section { font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 1.2px; padding: 0 24px 8px; text-transform: uppercase; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 24px;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: all .2s;
+    position: relative;
+    border-radius: 0;
+    text-decoration: none;
+  }
+  .nav-item:hover { color: var(--text); background: rgba(0,212,255,.04); }
+  .nav-item.active {
+    color: var(--accent);
+    background: rgba(0,212,255,.08);
+  }
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 6px; bottom: 6px;
+    width: 3px;
+    background: var(--accent);
+    border-radius: 0 3px 3px 0;
+  }
+  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+  .badge {
+    margin-left: auto;
+    background: var(--danger);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 20px;
+  }
+
+  .sidebar-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex-shrink: 0; box-shadow: 0 0 8px var(--success); }
+
+  /* ── Main content ─────────────────────────────────────────────────────────── */
+  .main {
+    margin-left: 256px;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Topbar ─────────────────────────────────────────────────────────────── */
+  .topbar {
+    padding: 20px 36px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(7,11,20,.8);
+    backdrop-filter: blur(12px);
+    position: sticky; top: 0;
+    z-index: 50;
+  }
+  .page-title { font-family: var(--font-head); font-size: 20px; font-weight: 700; }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .topbar-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 12.5px;
+    color: var(--muted);
+    display: flex; align-items: center; gap: 7px;
+    cursor: pointer;
+  }
+  .topbar-pill:hover { border-color: var(--accent); color: var(--text); }
+  .live-chip {
+    background: rgba(0,229,160,.1);
+    border: 1px solid rgba(0,229,160,.3);
+    color: var(--success);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: pulse 1.5s infinite; }
+
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes countUp { from{opacity:0} to{opacity:1} }
+
+  /* ── Content area ──────────────────────────────────────────────────────── */
+  .content { padding: 32px 36px; }
+
+  /* ── Section views (single-page navigation) ────────────────────────────── */
+  .view { display: none; }
+  .view.active { display: block; animation: fadeUp .35s ease; }
+
+  /* ── KPI Cards ──────────────────────────────────────────────────────────── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 28px;
+  }
+  .kpi {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 24px;
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+    transition: border-color .2s, transform .2s;
+  }
+  .kpi:hover { border-color: rgba(0,212,255,.3); transform: translateY(-2px); }
+  .kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--kpi-color, var(--accent));
+  }
+  .kpi-label { font-size: 11.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 10px; }
+  .kpi-value { font-family: var(--font-head); font-size: 32px; font-weight: 800; line-height: 1; color: var(--text); }
+  .kpi-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .kpi-icon { position: absolute; right: 20px; top: 20px; font-size: 22px; opacity: .2; }
+
+  /* ── Two-column grid ────────────────────────────────────────────────────── */
+  .grid-2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; margin-bottom: 18px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 18px; }
+
+  /* ── Panel / Card ───────────────────────────────────────────────────────── */
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 18px 22px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-title { font-family: var(--font-head); font-size: 14px; font-weight: 700; }
+  .panel-badge { font-size: 11px; color: var(--accent); background: rgba(0,212,255,.08); border: 1px solid rgba(0,212,255,.2); padding: 3px 10px; border-radius: 20px; }
+  .panel-body { padding: 20px 22px; }
+
+  /* ── Chart (canvas) ─────────────────────────────────────────────────────── */
+  canvas { display: block; width: 100% !important; }
+
+  /* ── Alert list ─────────────────────────────────────────────────────────── */
+  .alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .alert-item:last-child { border-bottom: none; }
+  .alert-item:hover { background: rgba(255,255,255,.02); }
+  .alert-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .alert-dot.critical { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+  .alert-dot.high     { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
+  .alert-dot.medium   { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  .alert-name { font-size: 13.5px; font-weight: 600; color: var(--text); }
+  .alert-msg  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .alert-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .tag {
+    font-size: 10.5px; font-weight: 600;
+    padding: 2px 8px; border-radius: 20px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .alert-risk {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .risk-critical { background: rgba(255,59,92,.12); color: var(--danger); border: 1px solid rgba(255,59,92,.3); }
+  .risk-high     { background: rgba(255,184,0,.12);  color: var(--warning); border: 1px solid rgba(255,184,0,.3); }
+  .risk-medium   { background: rgba(0,212,255,.08);  color: var(--accent);  border: 1px solid rgba(0,212,255,.2); }
+
+  /* ── Event feed ─────────────────────────────────────────────────────────── */
+  .event-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+  }
+  .event-item:last-child { border-bottom: none; }
+  .event-icon { font-size: 18px; width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,.05); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .event-student { font-weight: 600; color: var(--text); }
+  .event-course  { color: var(--muted); font-size: 11.5px; }
+  .event-time    { margin-left: auto; color: var(--muted); font-size: 11px; flex-shrink: 0; }
+
+  /* ── Institution table ──────────────────────────────────────────────────── */
+  .inst-table { width: 100%; border-collapse: collapse; }
+  .inst-table th { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; padding: 0 16px 12px; text-align: left; }
+  .inst-table td { padding: 13px 16px; font-size: 13px; border-top: 1px solid var(--border); }
+  .inst-table tr:hover td { background: rgba(255,255,255,.02); }
+  .risk-bar { width: 80px; height: 6px; background: rgba(255,255,255,.07); border-radius: 4px; position: relative; }
+  .risk-bar-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 4px; }
+
+  /* ── Prediction form ────────────────────────────────────────────────────── */
+  .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+  .form-group label { font-size: 11.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; display: block; margin-bottom: 7px; }
+  .form-group input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    transition: border-color .2s;
+  }
+  .form-group input:focus { outline: none; border-color: var(--accent); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 9px;
+    font-family: var(--font-head);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,212,255,.25); }
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 10px 20px;
+    border-radius: 9px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+  .btn-secondary:hover { border-color: var(--accent); }
+
+  /* ── Prediction result ──────────────────────────────────────────────────── */
+  .prediction-result {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    display: none;
+  }
+  .prediction-result.show { display: block; animation: fadeUp .3s ease; }
+  .risk-gauge { text-align: center; padding: 20px 0; }
+  .risk-number { font-family: var(--font-head); font-size: 64px; font-weight: 800; }
+  .risk-label-big { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; margin-top: 4px; }
+
+  /* ── Donut chart custom ─────────────────────────────────────────────────── */
+  .donut-wrap { position: relative; display: flex; justify-content: center; align-items: center; }
+  .donut-center { position: absolute; text-align: center; }
+  .donut-center-val { font-family: var(--font-head); font-size: 26px; font-weight: 800; }
+  .donut-center-lbl { font-size: 11px; color: var(--muted); }
+
+  /* ── National report ────────────────────────────────────────────────────── */
+  .report-stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 12px;
+  }
+  .report-stat-val { font-family: var(--font-head); font-size: 28px; font-weight: 800; }
+  .report-stat-lbl { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  /* ── Scrollbar ──────────────────────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* ── Loading overlay ────────────────────────────────────────────────────── */
+  .loading-overlay {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 999;
+    transition: opacity .5s;
+  }
+  .loading-overlay.hide { opacity: 0; pointer-events: none; }
+  .loader-logo { font-family: var(--font-head); font-size: 28px; font-weight: 800; margin-bottom: 24px; }
+  .loader-logo span { color: var(--accent); }
+  .loader-bar { width: 200px; height: 3px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .loader-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 3px; animation: loadFill 1.8s ease forwards; }
+  @keyframes loadFill { from{width:0} to{width:100%} }
+  .loader-text { font-size: 12px; color: var(--muted); margin-top: 14px; }
+
+  /* ── Cluster legend ─────────────────────────────────────────────────────── */
+  .cluster-legend { display: flex; flex-direction: column; gap: 10px; }
+  .cluster-item { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .cluster-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .cluster-count { margin-left: auto; font-weight: 700; font-size: 15px; }
+
+  @media (max-width: 1200px) {
+    .kpi-grid { grid-template-columns: repeat(2,1fr); }
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loader">
+  <div class="loader-logo">Edu<span>Analytics</span></div>
+  <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+  <div class="loader-text">Cargando plataforma nacional…</div>
+</div>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">🎓</div>
+    <h1>Edu<span>Analytics</span><br>Nacional</h1>
+  </div>
+  <nav>
+    <div class="nav-section" style="margin-top:8px">Principal</div>
+    <a class="nav-item active" data-view="dashboard" onclick="showView('dashboard',this)">
+      <span class="icon">⬡</span> Dashboard
+    </a>
+    <a class="nav-item" data-view="alerts" onclick="showView('alerts',this)">
+      <span class="icon">🔔</span> Alertas
+      <span class="badge" id="alert-badge">4</span>
+    </a>
+    <a class="nav-item" data-view="events" onclick="showView('events',this)">
+      <span class="icon">⚡</span> Eventos
+    </a>
+    <div class="nav-section" style="margin-top:16px">Análisis</div>
+    <a class="nav-item" data-view="analytics" onclick="showView('analytics',this)">
+      <span class="icon">📊</span> Analytics
+    </a>
+    <a class="nav-item" data-view="predict" onclick="showView('predict',this)">
+      <span class="icon">🤖</span> IA Predictiva
+    </a>
+    <a class="nav-item" data-view="institutions" onclick="showView('institutions',this)">
+      <span class="icon">🏛️</span> Instituciones
+    </a>
+    <div class="nav-section" style="margin-top:16px">Reportes</div>
+    <a class="nav-item" data-view="reports" onclick="showView('reports',this)">
+      <span class="icon">📋</span> Reportes Nacionales
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="status-dot"></div>
+    <div>API Conectada<br><span style="font-size:10px;opacity:.6">Actualizado hace 2 min</span></div>
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="main">
+  <header class="topbar">
+    <div class="page-title" id="page-title">Dashboard Nacional</div>
+    <div class="topbar-right">
+      <div class="live-chip"><div class="live-dot"></div>En vivo</div>
+      <div class="topbar-pill">📅 Período 2026-I</div>
+      <div class="topbar-pill">🏛️ 47 Instituciones</div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ── DASHBOARD VIEW ──────────────────────────────────────────────── -->
+    <section class="view active" id="view-dashboard">
+      <!-- KPI -->
+      <div class="kpi-grid">
+        <div class="kpi" style="--kpi-color: var(--accent)">
+          <div class="kpi-icon">👥</div>
+          <div class="kpi-label">Total Estudiantes</div>
+          <div class="kpi-value" id="kpi-total">12,450</div>
+          <div class="kpi-sub">↑ 3.2% vs semestre anterior</div>
+        </div>
+        <div class="kpi" style="--kpi-color: var(--danger)">
+          <div class="kpi-icon">⚠️</div>
+          <div class="kpi-label">Alto Riesgo</div>
+          <div class="kpi-value" id="kpi-high" style="color:var(--danger)">1,876</div>
+          <div class="kpi-sub">15.1% del total</div>
+        </div>
+        <div class="kpi" style="--kpi-color: var(--warning)">
+          <div class="kpi-icon">📉</div>
+          <div class="kpi-label">Tasa Deserción</div>
+          <div class="kpi-value" id="kpi-dropout" style="color:var(--warning)">18.7%</div>
+          <div class="kpi-sub">↓ 1.1pp vs sem. anterior</div>
+        </div>
+        <div class="kpi" style="--kpi-color: var(--success)">
+          <div class="kpi-icon">🔔</div>
+          <div class="kpi-label">Alertas Activas</div>
+          <div class="kpi-value" id="kpi-alerts" style="color:var(--success)">234</div>
+          <div class="kpi-sub">Esta semana</div>
+        </div>
+      </div>
+
+      <!-- Charts row 1 -->
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Tendencia de Riesgo Semanal</div>
+            <div class="panel-badge">Semanas 1–6</div>
+          </div>
+          <div class="panel-body">
+            <canvas id="trendChart" height="200"></canvas>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Distribución por Clúster</div>
+            <div class="panel-badge">K-Means</div>
+          </div>
+          <div class="panel-body">
+            <div class="donut-wrap">
+              <canvas id="donutChart" height="200" width="200"></canvas>
+              <div class="donut-center">
+                <div class="donut-center-val">4</div>
+                <div class="donut-center-lbl">Clústeres</div>
+              </div>
+            </div>
+            <div class="cluster-legend" id="cluster-legend" style="margin-top:16px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts row 2 -->
+      <div class="grid-3">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Cursos con Mayor Riesgo</div>
+          </div>
+          <div class="panel-body">
+            <canvas id="coursesChart" height="220"></canvas>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Distribución de Riesgo</div>
+          </div>
+          <div class="panel-body" style="display:flex;flex-direction:column;gap:14px;padding-top:24px">
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+                <span>Bajo</span><span style="color:var(--success)">59.2%</span>
+              </div>
+              <div class="risk-bar" style="width:100%"><div class="risk-bar-fill" style="width:59%;background:var(--success)"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+                <span>Medio</span><span style="color:var(--accent)">25.8%</span>
+              </div>
+              <div class="risk-bar" style="width:100%"><div class="risk-bar-fill" style="width:25.8%;background:var(--accent)"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+                <span>Alto</span><span style="color:var(--warning)">12.7%</span>
+              </div>
+              <div class="risk-bar" style="width:100%"><div class="risk-bar-fill" style="width:12.7%;background:var(--warning)"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+                <span>Crítico</span><span style="color:var(--danger)">2.3%</span>
+              </div>
+              <div class="risk-bar" style="width:100%"><div class="risk-bar-fill" style="width:2.3%;background:var(--danger)"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Eventos Hoy</div>
+            <div class="panel-badge" id="events-today-badge">—</div>
+          </div>
+          <div class="panel-body">
+            <canvas id="eventTypesChart" height="220"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── ALERTS VIEW ─────────────────────────────────────────────────── -->
+    <section class="view" id="view-alerts">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Alertas Académicas Activas</div>
+          <div class="panel-badge" id="alerts-count-badge">5 alertas</div>
+        </div>
+        <div class="panel-body" id="alerts-list" style="padding:0 22px"></div>
+      </div>
+    </section>
+
+    <!-- ── EVENTS VIEW ─────────────────────────────────────────────────── -->
+    <section class="view" id="view-events">
+      <div class="grid-2" style="margin-bottom:18px">
+        <div class="kpi" style="--kpi-color:var(--accent2)">
+          <div class="kpi-label">Eventos Esta Semana</div>
+          <div class="kpi-value">98,432</div>
+        </div>
+        <div class="kpi" style="--kpi-color:var(--accent)">
+          <div class="kpi-label">Eventos Hoy</div>
+          <div class="kpi-value">1,243</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Feed de Eventos Recientes</div>
+          <div class="live-chip"><div class="live-dot"></div>En tiempo real</div>
+        </div>
+        <div class="panel-body" id="events-feed" style="padding:0 22px"></div>
+      </div>
+    </section>
+
+    <!-- ── ANALYTICS VIEW ─────────────────────────────────────────────── -->
+    <section class="view" id="view-analytics">
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Evolución Temporal del Riesgo</div>
+          </div>
+          <div class="panel-body">
+            <canvas id="analyticsChart" height="260"></canvas>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Top 5 Cursos en Riesgo</div>
+          </div>
+          <div class="panel-body">
+            <canvas id="coursesBarChart" height="260"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Tecnologías del Stack Analítico</div>
+        </div>
+        <div class="panel-body">
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;text-align:center">
+              <div style="font-size:28px;margin-bottom:8px">🐍</div>
+              <div style="font-size:13px;font-weight:700">Python</div>
+              <div style="font-size:11px;color:var(--muted)">Core Analytics</div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;text-align:center">
+              <div style="font-size:28px;margin-bottom:8px">🔬</div>
+              <div style="font-size:13px;font-weight:700">Scikit-Learn</div>
+              <div style="font-size:11px;color:var(--muted)">ML / IA Predictiva</div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;text-align:center">
+              <div style="font-size:28px;margin-bottom:8px">🐼</div>
+              <div style="font-size:13px;font-weight:700">Pandas</div>
+              <div style="font-size:11px;color:var(--muted)">Procesamiento</div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;text-align:center">
+              <div style="font-size:28px;margin-bottom:8px">🔥</div>
+              <div style="font-size:13px;font-weight:700">Firebase</div>
+              <div style="font-size:11px;color:var(--muted)">Realtime DB</div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;text-align:center">
+              <div style="font-size:28px;margin-bottom:8px">🍃</div>
+              <div style="font-size:13px;font-weight:700">MongoDB</div>
+              <div style="font-size:11px;color:var(--muted)">Data Lake</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PREDICT VIEW ────────────────────────────────────────────────── -->
+    <section class="view" id="view-predict">
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🤖 Predicción de Riesgo Académico</div>
+            <div class="panel-badge">Random Forest + LR</div>
+          </div>
+          <div class="panel-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Promedio de Notas (0–10)</label>
+                <input type="number" id="p-score" min="0" max="10" step="0.1" value="5.5" placeholder="Ej: 6.2">
+              </div>
+              <div class="form-group">
+                <label>Tasa de Asistencia (0–1)</label>
+                <input type="number" id="p-attend" min="0" max="1" step="0.01" value="0.72" placeholder="Ej: 0.75">
+              </div>
+              <div class="form-group">
+                <label>Entregas Tardías</label>
+                <input type="number" id="p-late" min="0" value="3" placeholder="Ej: 2">
+              </div>
+              <div class="form-group">
+                <label>Frecuencia Login / semana</label>
+                <input type="number" id="p-login" min="0" max="7" step="0.5" value="4" placeholder="Ej: 4">
+              </div>
+              <div class="form-group">
+                <label>Entregas a tiempo</label>
+                <input type="number" id="p-ontime" min="0" value="8" placeholder="Ej: 10">
+              </div>
+              <div class="form-group">
+                <label>Semestre</label>
+                <input type="number" id="p-sem" min="1" max="10" value="2" placeholder="Ej: 3">
+              </div>
+            </div>
+            <div style="display:flex;gap:10px">
+              <button class="btn-primary" onclick="runPrediction()">🔮 Predecir Riesgo</button>
+              <button class="btn-secondary" onclick="resetPrediction()">↺ Limpiar</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Resultado de Predicción</div>
+          </div>
+          <div class="panel-body">
+            <div id="predict-placeholder" style="text-align:center;color:var(--muted);padding:48px 0;font-size:14px">
+              ⬅️ Ingresa los datos del estudiante<br>y presiona "Predecir Riesgo"
+            </div>
+            <div class="prediction-result" id="pred-result">
+              <div class="risk-gauge">
+                <div class="risk-number" id="pred-score">—</div>
+                <div class="risk-label-big" id="pred-level">—</div>
+              </div>
+              <div style="margin-top:16px">
+                <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.8px">Factores detectados</div>
+                <div id="pred-factors"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── INSTITUTIONS VIEW ──────────────────────────────────────────── -->
+    <section class="view" id="view-institutions">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Instituciones de Educación Superior</div>
+          <div class="panel-badge">47 IES Conectadas</div>
+        </div>
+        <div class="panel-body" style="padding:0">
+          <table class="inst-table">
+            <thead>
+              <tr>
+                <th>Institución</th>
+                <th>Ciudad</th>
+                <th>Estudiantes</th>
+                <th>Tasa de Riesgo</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="inst-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── REPORTS VIEW ───────────────────────────────────────────────── -->
+    <section class="view" id="view-reports">
+      <div class="grid-3" style="margin-bottom:18px">
+        <div class="report-stat">
+          <div class="report-stat-val" style="color:var(--accent)">125,000</div>
+          <div class="report-stat-lbl">Estudiantes matriculados a nivel nacional</div>
+        </div>
+        <div class="report-stat">
+          <div class="report-stat-val" style="color:var(--danger)">18.7%</div>
+          <div class="report-stat-lbl">Tasa de deserción nacional</div>
+        </div>
+        <div class="report-stat">
+          <div class="report-stat-val" style="color:var(--warning)">8,932</div>
+          <div class="report-stat-lbl">Alertas generadas este período</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Reporte por Programa Académico</div>
+          <button class="btn-primary" style="font-size:12px;padding:7px 16px" onclick="exportReport()">⬇ Exportar</button>
+        </div>
+        <div class="panel-body" style="padding:0">
+          <table class="inst-table">
+            <thead>
+              <tr><th>Programa</th><th>Tasa Deserción</th><th>Tendencia</th><th>Recomendación</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Ingeniería de Sistemas</td>
+                <td><span style="color:var(--warning)">22.0%</span></td>
+                <td>↗ Subiendo</td>
+                <td style="color:var(--muted);font-size:12px">Reforzar tutorías en 1er semestre</td>
+              </tr>
+              <tr>
+                <td>IA & Data Science</td>
+                <td><span style="color:var(--accent)">18.0%</span></td>
+                <td>→ Estable</td>
+                <td style="color:var(--muted);font-size:12px">Ampliar acceso a laboratorios</td>
+              </tr>
+              <tr>
+                <td>Tecnología en Programación</td>
+                <td><span style="color:var(--danger)">31.0%</span></td>
+                <td>↗ Crítico</td>
+                <td style="color:var(--muted);font-size:12px">Programa urgente de mentorías</td>
+              </tr>
+              <tr>
+                <td>Ciencias de la Computación</td>
+                <td><span style="color:var(--success)">12.5%</span></td>
+                <td>↘ Mejorando</td>
+                <td style="color:var(--muted);font-size:12px">Mantener estrategias actuales</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /content -->
+</main>
+
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ── Chart defaults ──────────────────────────────────────────────────────────
+Chart.defaults.color = '#5a7499';
+Chart.defaults.borderColor = '#1e2d45';
+Chart.defaults.font.family = "'Space Grotesk', sans-serif";
+
+const ACCENT  = '#00d4ff';
+const ACCENT2 = '#7c3aff';
+const DANGER  = '#ff3b5c';
+const WARNING = '#ffb800';
+const SUCCESS = '#00e5a0';
+const ORANGE  = '#ff6b35';
+
+// ── Navigation ──────────────────────────────────────────────────────────────
+const PAGE_TITLES = {
+  dashboard:    'Dashboard Nacional',
+  alerts:       'Alertas Académicas',
+  events:       'Feed de Eventos',
+  analytics:    'Analytics & Tendencias',
+  predict:      'IA Predictiva',
+  institutions: 'Instituciones',
+  reports:      'Reportes Nacionales'
+};
+
+function showView(id, el) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('page-title').textContent = PAGE_TITLES[id];
+  if (id === 'analytics') initAnalyticsCharts();
+}
+
+// ── Mock data ────────────────────────────────────────────────────────────────
+const MOCK = {
+  stats: {
+    total_students: 12450, students_high_risk: 1876,
+    students_medium_risk: 3210, students_low_risk: 7364,
+    active_alerts: 234, institutions_count: 47,
+    national_dropout_rate: 0.187, weekly_events: 98432,
+  },
+  trends: [
+    { week: 'Sem 1', high: 120, medium: 280, low: 600 },
+    { week: 'Sem 2', high: 145, medium: 310, low: 545 },
+    { week: 'Sem 3', high: 189, medium: 295, low: 516 },
+    { week: 'Sem 4', high: 201, medium: 330, low: 469 },
+    { week: 'Sem 5', high: 187, medium: 321, low: 492 },
+    { week: 'Sem 6', high: 220, medium: 340, low: 440 },
+  ],
+  courses: [
+    { course: 'Cálculo I',       risk_rate: 0.34 },
+    { course: 'Programación I',  risk_rate: 0.28 },
+    { course: 'Álgebra Lineal',  risk_rate: 0.25 },
+    { course: 'IA Fundamentos',  risk_rate: 0.22 },
+    { course: 'Estadística',     risk_rate: 0.19 },
+  ],
+  clusters: [
+    { cluster: 'Alto rendimiento', count: 4200, pct: 33.7 },
+    { cluster: 'Riesgo moderado',  count: 3860, pct: 31.0 },
+    { cluster: 'En riesgo',        count: 2890, pct: 23.2 },
+    { cluster: 'Crítico',          count: 1500, pct: 12.1 },
+  ],
+  alerts: [
+    { id:'a1', student_name:'Ana García',      institution_id:'UNAL',       risk_level:'critical', message:'Riesgo inminente de deserción', factors:['Promedio 2.8','Asistencia 45%','Sin entregas 3 semanas'], read:false },
+    { id:'a2', student_name:'Carlos Martínez', institution_id:'UDEA',       risk_level:'high',     message:'Alto riesgo académico detectado', factors:['7 entregas tardías','Login frecuencia baja'], read:false },
+    { id:'a3', student_name:'María López',     institution_id:'UNAL',       risk_level:'medium',   message:'Riesgo moderado, se recomienda seguimiento', factors:['Asistencia 68%','Promedio 3.2'], read:true },
+    { id:'a4', student_name:'José Rodríguez',  institution_id:'ITBA',       risk_level:'high',     message:'Sin actividad durante 10 días', factors:['Sin acceso reciente'], read:false },
+    { id:'a5', student_name:'Laura Sánchez',   institution_id:'UDISTRITAL', risk_level:'medium',   message:'Baja participación en plataforma', factors:['Tiempo de conexión reducido'], read:false },
+  ],
+  events: [
+    { type:'assignment_submit', icon:'📝', student:'Ana García',      course:'Programación I',  time:'10:00 AM' },
+    { type:'login',             icon:'🔐', student:'Carlos M.',        course:'IA Fundamentos',  time:'09:45 AM' },
+    { type:'late_submission',   icon:'⚠️', student:'José R.',          course:'Cálculo I',       time:'09:30 AM' },
+    { type:'quiz_complete',     icon:'✅', student:'María L.',          course:'Estadística',     time:'09:15 AM' },
+    { type:'code_commit',       icon:'💻', student:'Laura S.',          course:'Programación II', time:'09:00 AM' },
+    { type:'video_watch',       icon:'▶️', student:'Pedro G.',          course:'Álgebra',         time:'08:50 AM' },
+    { type:'forum_post',        icon:'💬', student:'Daniela P.',        course:'IA Fundamentos',  time:'08:40 AM' },
+  ],
+  institutions: [
+    { id:'UNAL',       name:'Universidad Nacional de Colombia', city:'Bogotá',      students:3200, risk_rate:0.21 },
+    { id:'UDEA',       name:'Universidad de Antioquia',         city:'Medellín',    students:2800, risk_rate:0.18 },
+    { id:'UDISTRITAL', name:'Universidad Distrital',            city:'Bogotá',      students:2100, risk_rate:0.24 },
+    { id:'ITBA',       name:'ITBA',                             city:'Barranquilla',students:1850, risk_rate:0.16 },
+    { id:'UNICAUCA',   name:'Universidad del Cauca',            city:'Popayán',     students:1400, risk_rate:0.29 },
+  ],
+};
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('hide');
+    renderAll();
+  }, 1900);
+});
+
+function renderAll() {
+  renderKPIs();
+  renderTrendChart();
+  renderDonutChart();
+  renderCoursesChart();
+  renderEventTypesChart();
+  renderAlerts();
+  renderEvents();
+  renderInstitutions();
+}
+
+// ── KPIs ─────────────────────────────────────────────────────────────────────
+function renderKPIs() {
+  animateCount('kpi-total',   0, 12450,  1800);
+  animateCount('kpi-high',    0, 1876,   1600);
+  animateCount('kpi-alerts',  0, 234,    1400);
+  document.getElementById('events-today-badge').textContent = '1,243';
+}
+
+function animateCount(id, from, to, dur) {
+  const el = document.getElementById(id); if (!el) return;
+  const start = performance.now();
+  const fmt = n => n >= 1000 ? n.toLocaleString('es') : n;
+  const tick = now => {
+    const p = Math.min((now - start) / dur, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    el.textContent = fmt(Math.round(from + (to - from) * ease));
+    if (p < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+// ── Trend chart ───────────────────────────────────────────────────────────────
+function renderTrendChart() {
+  const ctx = document.getElementById('trendChart');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: MOCK.trends.map(t => t.week),
+      datasets: [
+        { label: 'Alto', data: MOCK.trends.map(t => t.high),
+          borderColor: DANGER, backgroundColor: 'rgba(255,59,92,.08)',
+          tension: .4, fill: true, pointRadius: 4, pointBackgroundColor: DANGER },
+        { label: 'Medio', data: MOCK.trends.map(t => t.medium),
+          borderColor: WARNING, backgroundColor: 'rgba(255,184,0,.05)',
+          tension: .4, fill: true, pointRadius: 4, pointBackgroundColor: WARNING },
+        { label: 'Bajo', data: MOCK.trends.map(t => t.low),
+          borderColor: SUCCESS, backgroundColor: 'rgba(0,229,160,.04)',
+          tension: .4, fill: true, pointRadius: 4, pointBackgroundColor: SUCCESS },
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: '#5a7499', font: { size: 12 }, boxWidth: 12 }}},
+      scales: {
+        x: { grid: { color: '#1e2d45' }},
+        y: { grid: { color: '#1e2d45' }}
+      }
+    }
+  });
+}
+
+// ── Donut chart ────────────────────────────────────────────────────────────
+const CLUSTER_COLORS = [SUCCESS, ACCENT, WARNING, DANGER];
+
+function renderDonutChart() {
+  const ctx = document.getElementById('donutChart');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: MOCK.clusters.map(c => c.cluster),
+      datasets: [{ data: MOCK.clusters.map(c => c.pct), backgroundColor: CLUSTER_COLORS, borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: {
+      cutout: '68%',
+      plugins: { legend: { display: false }},
+      responsive: true
+    }
+  });
+  // Legend
+  const leg = document.getElementById('cluster-legend');
+  MOCK.clusters.forEach((c, i) => {
+    leg.innerHTML += `<div class="cluster-item">
+      <div class="cluster-dot" style="background:${CLUSTER_COLORS[i]}"></div>
+      <span style="font-size:12px;color:var(--muted)">${c.cluster}</span>
+      <span class="cluster-count" style="color:${CLUSTER_COLORS[i]}">${c.count.toLocaleString()}</span>
+    </div>`;
+  });
+}
+
+// ── Courses chart ─────────────────────────────────────────────────────────
+function renderCoursesChart() {
+  const ctx = document.getElementById('coursesChart');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: MOCK.courses.map(c => c.course),
+      datasets: [{
+        label: 'Tasa de Riesgo',
+        data: MOCK.courses.map(c => (c.risk_rate * 100).toFixed(1)),
+        backgroundColor: [DANGER, ORANGE, WARNING, ACCENT, SUCCESS],
+        borderRadius: 6, borderSkipped: false,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false }},
+      scales: {
+        x: { grid: { color: '#1e2d45' }, ticks: { callback: v => v + '%' }},
+        y: { grid: { display: false }}
+      }
+    }
+  });
+}
+
+// ── Event types chart ─────────────────────────────────────────────────────
+function renderEventTypesChart() {
+  const ctx = document.getElementById('eventTypesChart');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'polarArea',
+    data: {
+      labels: ['Login', 'Entregas', 'Quizzes', 'Commits', 'Tardías'],
+      datasets: [{
+        data: [3200, 1800, 1400, 980, 596],
+        backgroundColor: ['rgba(0,212,255,.6)','rgba(0,229,160,.6)','rgba(124,58,255,.6)','rgba(255,107,53,.6)','rgba(255,59,92,.6)'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      plugins: { legend: { labels: { color: '#5a7499', font: { size: 11 }, boxWidth: 10 }}},
+    }
+  });
+}
+
+// ── Analytics charts (lazy) ───────────────────────────────────────────────
+let analyticsInited = false;
+function initAnalyticsCharts() {
+  if (analyticsInited) return;
+  analyticsInited = true;
+
+  const ctx1 = document.getElementById('analyticsChart');
+  new Chart(ctx1, {
+    type: 'line',
+    data: {
+      labels: MOCK.trends.map(t => t.week),
+      datasets: [
+        { label: 'Alto Riesgo', data: MOCK.trends.map(t => t.high),
+          borderColor: DANGER, tension: .4, fill: false, pointRadius: 5, pointBackgroundColor: DANGER },
+        { label: 'Riesgo Medio', data: MOCK.trends.map(t => t.medium),
+          borderColor: WARNING, tension: .4, fill: false, pointRadius: 5, pointBackgroundColor: WARNING },
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: '#5a7499' }}},
+      scales: { x: { grid: { color: '#1e2d45' }}, y: { grid: { color: '#1e2d45' }}}
+    }
+  });
+
+  const ctx2 = document.getElementById('coursesBarChart');
+  new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: MOCK.courses.map(c => c.course),
+      datasets: [{
+        label: '% en Riesgo',
+        data: MOCK.courses.map(c => (c.risk_rate * 100).toFixed(1)),
+        backgroundColor: `rgba(0,212,255,.7)`,
+        borderRadius: 8,
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false }},
+      scales: {
+        x: { grid: { display: false }},
+        y: { grid: { color: '#1e2d45' }, ticks: { callback: v => v + '%' }}
+      }
+    }
+  });
+}
+
+// ── Alerts ────────────────────────────────────────────────────────────────
+function renderAlerts() {
+  const list = document.getElementById('alerts-list');
+  if (!list) return;
+  list.innerHTML = MOCK.alerts.map(a => `
+    <div class="alert-item" onclick="markRead('${a.id}', this)">
+      <div class="alert-dot ${a.risk_level}"></div>
+      <div style="flex:1">
+        <div class="alert-name">${a.student_name} ${a.read ? '' : '<span style="color:var(--accent);font-size:10px;margin-left:6px">● NUEVO</span>'}</div>
+        <div class="alert-msg">${a.message} — <em style="font-size:11px">${a.institution_id}</em></div>
+        <div class="alert-tags">${a.factors.map(f => `<span class="tag">${f}</span>`).join('')}</div>
+      </div>
+      <div class="alert-risk risk-${a.risk_level}">${a.risk_level.toUpperCase()}</div>
+    </div>
+  `).join('');
+  document.getElementById('alerts-count-badge').textContent = MOCK.alerts.length + ' alertas';
+}
+
+function markRead(id, el) {
+  el.querySelector('[style*="color:var(--accent)"]')?.remove();
+}
+
+// ── Events feed ───────────────────────────────────────────────────────────
+function renderEvents() {
+  const feed = document.getElementById('events-feed');
+  if (!feed) return;
+  feed.innerHTML = MOCK.events.map(e => `
+    <div class="event-item">
+      <div class="event-icon">${e.icon}</div>
+      <div>
+        <div class="event-student">${e.student}</div>
+        <div class="event-course">${e.type.replace('_',' ')} · ${e.course}</div>
+      </div>
+      <div class="event-time">${e.time}</div>
+    </div>
+  `).join('');
+}
+
+// ── Institutions ──────────────────────────────────────────────────────────
+function renderInstitutions() {
+  const tbody = document.getElementById('inst-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = MOCK.institutions.map(inst => {
+    const pct = (inst.risk_rate * 100).toFixed(0);
+    const color = inst.risk_rate > 0.25 ? DANGER : inst.risk_rate > 0.18 ? WARNING : SUCCESS;
+    return `<tr>
+      <td><strong>${inst.name}</strong></td>
+      <td style="color:var(--muted)">${inst.city}</td>
+      <td>${inst.students.toLocaleString()}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="risk-bar"><div class="risk-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+          <span style="color:${color};font-weight:700;font-size:13px">${pct}%</span>
+        </div>
+      </td>
+      <td><span style="color:var(--success);font-size:11px;font-weight:700">● ACTIVA</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── AI Prediction (client-side simulation) ────────────────────────────────
+function runPrediction() {
+  const score   = parseFloat(document.getElementById('p-score').value)   || 5;
+  const attend  = parseFloat(document.getElementById('p-attend').value)  || 0.7;
+  const late    = parseInt(document.getElementById('p-late').value)      || 0;
+  const login   = parseFloat(document.getElementById('p-login').value)   || 3;
+  const ontime  = parseInt(document.getElementById('p-ontime').value)    || 8;
+
+  // Weighted risk formula (mirrors backend logic)
+  const riskScore = Math.min(1, Math.max(0,
+    (1 - score / 10) * 0.35 +
+    (1 - attend)     * 0.30 +
+    (late / 10)      * 0.20 +
+    (1 - login / 7)  * 0.15
+  ));
+
+  let level, color;
+  if (riskScore >= 0.8)      { level = 'CRÍTICO';  color = DANGER;  }
+  else if (riskScore >= 0.6) { level = 'ALTO';     color = WARNING; }
+  else if (riskScore >= 0.3) { level = 'MEDIO';    color = ACCENT;  }
+  else                       { level = 'BAJO';     color = SUCCESS; }
+
+  const factors = [];
+  if (score < 4)     factors.push('Promedio por debajo del mínimo (' + score + ')');
+  if (attend < 0.7)  factors.push('Asistencia inferior al 70% (' + (attend*100).toFixed(0) + '%)');
+  if (late > 3)      factors.push('Alta cantidad de entregas tardías (' + late + ')');
+  if (login < 2)     factors.push('Baja frecuencia de acceso (' + login + 'x/semana)');
+  if (!factors.length) factors.push('Sin factores críticos detectados');
+
+  // Show result
+  document.getElementById('predict-placeholder').style.display = 'none';
+  const res = document.getElementById('pred-result');
+  res.classList.add('show');
+  document.getElementById('pred-score').textContent = (riskScore * 100).toFixed(1) + '%';
+  document.getElementById('pred-score').style.color = color;
+  document.getElementById('pred-level').textContent = level;
+  document.getElementById('pred-level').style.color = color;
+  document.getElementById('pred-factors').innerHTML = factors.map(f =>
+    `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span style="color:${color}">▶</span> ${f}
+    </div>`
+  ).join('');
+}
+
+function resetPrediction() {
+  document.getElementById('predict-placeholder').style.display = 'block';
+  document.getElementById('pred-result').classList.remove('show');
+}
+
+function exportReport() {
+  alert('📊 Reporte nacional exportado correctamente.\n\nArchivo: reporte_nacional_2026I.pdf');
+}
+</script>
+</body>
+</html>
