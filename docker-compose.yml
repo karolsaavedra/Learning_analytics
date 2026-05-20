@@ -1,5 +1,3 @@
-version: "3.9"
-
 networks:
   learning-analytics-net:
     driver: bridge
@@ -41,6 +39,10 @@ services:
     container_name: event-service
     ports:
       - "8001:8001"
+    environment:
+      - FIREBASE_SERVICE_ACCOUNT=/app/serviceAccount.json
+    volumes:
+      - ./serviceAccount.json:/app/serviceAccount.json:ro
     networks:
       - learning-analytics-net
     restart: unless-stopped
@@ -58,6 +60,9 @@ services:
       - "8002:8002"
     environment:
       - ALERT_SERVICE_URL=http://alert-service:8003
+      - FIREBASE_SERVICE_ACCOUNT=/app/serviceAccount.json
+    volumes:
+      - ./serviceAccount.json:/app/serviceAccount.json:ro
     depends_on:
       alert-service:
         condition: service_started
@@ -76,6 +81,10 @@ services:
     container_name: alert-service
     ports:
       - "8003:8003"
+    environment:
+      - FIREBASE_SERVICE_ACCOUNT=/app/serviceAccount.json
+    volumes:
+      - ./serviceAccount.json:/app/serviceAccount.json:ro
     networks:
       - learning-analytics-net
     restart: unless-stopped
@@ -95,6 +104,9 @@ services:
       - ANALYTICS_SERVICE_URL=http://analytics-service:8002
       - ALERT_SERVICE_URL=http://alert-service:8003
       - EVENT_SERVICE_URL=http://event-service:8001
+      - FIREBASE_SERVICE_ACCOUNT=/app/serviceAccount.json
+    volumes:
+      - ./serviceAccount.json:/app/serviceAccount.json:ro
     depends_on:
       analytics-service:
         condition: service_started

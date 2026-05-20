@@ -117,6 +117,47 @@ docker compose down
 
 ---
 
+## Firebase Firestore (Persistencia Real)
+
+Los microservicios `alert-service` y `event-service` pueden persistir datos en **Firebase Firestore** cuando se configura el service account.
+
+### Configurar Firebase
+
+1. Ir a [Firebase Console](https://console.firebase.google.com) → Proyecto `prediccionriesgoacademico`
+2. ⚙️ Ajustes → **Cuentas de servicio** → Firebase Admin SDK
+3. Click **"Generar nueva clave privada"** → descargar `serviceAccount.json`
+4. Colocar el archivo en la raiz del proyecto (junto a `docker-compose.yml`)
+5. **Importante:** el archivo ya esta en `.gitignore` para no subirlo a GitHub
+
+### Como funciona
+
+- Si `serviceAccount.json` existe → los servicios leen/escriben en Firestore automaticamente
+- Si no existe → usan base de datos en memoria (demo sin dependencias)
+- Datos agregados desde Firebase Console → Firestore → visibles en el frontend
+
+### Colecciones Firestore
+
+| Coleccion | Servicio | Uso |
+|---|---|---|
+| `alerts/` | alert-service | Alertas academicas generadas por IA |
+| `events/` | event-service | Eventos academicos capturados |
+
+### Agregar datos desde Firebase Console
+
+1. Abrir Firebase Console → Firestore Database
+2. Crear documento en coleccion `alerts` o `events`
+3. Refrescar el frontend → los datos aparecen en el dashboard
+
+### Verificar conexion
+
+```bash
+# El health check muestra si Firestore esta activo
+Invoke-RestMethod http://localhost:8000/health/all
+# Respuesta incluye firestore: true en alert-service y event-service
+```
+
+---
+
 ## Frontend (Interfaz de Usuario)
 
 Disponible en: **http://localhost:80**

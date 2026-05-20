@@ -4,13 +4,35 @@ from typing import List, Optional
 from datetime import datetime
 import uuid
 import logging
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("alert-service")
 
 app = FastAPI(title="Alert Service", version="1.0.0")
 
-# In-memory database (Database per Service pattern)
+# ── Firebase Firestore (persistencia real) ────────────────────────────────
+firestore_client = None
+FIRESTORE_AVAILABLE = False
+SERVICE_ACCOUNT_PATH = os.getenv("FIREBASE_SERVICE_ACCOUNT", "")
+
+if SERVICE_ACCOUNT_PATH and os.path.exists(SERVICE_ACCOUNT_PATH):
+    try:
+        import firebase_admin
+        from firebase_admin import credentials, firestore
+        cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
+        firebase_admin.initialize_app(cred)
+        firestore_client = firestore.client()
+        FIRESTORE_AVAILABLE = True
+        logger.info("Firebase Firestore conectado exitosamente")
+    except Exception as e:
+        logger.warning(f"Error al conectar Firebase: {e}")
+else:
+    logger.info("Firebase no configurado. Usando DB en memoria.")
+
+ALERTS_COLLECTION = "alerts"
+
+# ── In-memory fallback ────────────────────────────────────────────────────
 alerts_db = {}
 
 class AlertCreate(BaseModel):
@@ -41,25 +63,54 @@ ALERT_MESSAGES = {
 
 @app.get("/health")
 async def health():
-    return {"service": "alert-service", "status": "ok"}
+    return {
+        "service": "alert-service",
+        "status": "ok",
+        "firestore": FIRESTORE_AVAILABLE
+    }
 
 @app.get("/api/alerts")
+@app.get("/api/alerts/")
 async def get_alerts():
-    logger.info(f"Fetching alerts, total: {len(alerts_db)}")
+    if FIRESTORE_AVAILABLE and firestore_client:
+        try:
+            docs = list(firestore_client.collection(ALERTS_COLLECTION).limit(50).stream())
+            alerts = []
+            for doc in docs:
+                data = doc.to_dict()
+                data["id"] = doc.id
+                alerts.append(data)
+            # Ordenar en Python (evita composite index en Firestore)
+            alerts.sort(key=lambda a: a.get("created_at", ""), reverse=True)
+            logger.info(f"Leidas {len(alerts)} alertas desde Firestore")
+            return {"alerts": alerts, "total": len(alerts), "source": "firestore"}
+        except Exception as e:
+            logger.warning(f"Error leyendo de Firestore: {e}")
+
     alerts = list(alerts_db.values()) if alerts_db else _get_mock_alerts()
-    return {"alerts": [a.model_dump() for a in alerts], "total": len(alerts)}
+    return {"alerts": [a.model_dump() for a in alerts], "total": len(alerts), "source": "memory"}
 
 @app.get("/api/alerts/unread-count")
+@app.get("/api/alerts/unread-count/")
 async def get_unread_count():
+    if FIRESTORE_AVAILABLE and firestore_client:
+        try:
+            docs = firestore_client.collection(ALERTS_COLLECTION) \
+                .where("read", "==", False).stream()
+            count = sum(1 for _ in docs)
+            return {"unread": count, "source": "firestore"}
+        except Exception as e:
+            logger.warning(f"Error contando en Firestore: {e}")
+
     alerts = list(alerts_db.values()) if alerts_db else _get_mock_alerts()
     unread = sum(1 for a in alerts if not a.read)
-    return {"unread": unread}
+    return {"unread": unread, "source": "memory"}
 
 @app.post("/api/alerts/generate")
 async def generate_alert(data: AlertCreate):
     risk_level = data.risk_level
-    if risk_level == "low":
-        logger.info(f"Risk level too low for student {data.student_id}, no alert generated")
+    if risk_level == "low" and data.risk_score < 0.25:
+        logger.info(f"Risk too low for student {data.student_id} (score={data.risk_score})")
         return {"generated": False, "reason": "Risk level too low"}
 
     alert = AlertOut(
@@ -73,25 +124,49 @@ async def generate_alert(data: AlertCreate):
         read=False,
         created_at=datetime.utcnow()
     )
+
+    if FIRESTORE_AVAILABLE and firestore_client:
+        try:
+            doc_ref = firestore_client.collection(ALERTS_COLLECTION).document(alert.id)
+            doc_ref.set(alert.model_dump())
+            logger.info(f"Alerta {alert.id} guardada en Firestore")
+            return {"alert": alert.model_dump(), "generated": True, "source": "firestore"}
+        except Exception as e:
+            logger.warning(f"Error guardando en Firestore: {e}")
+
     alerts_db[alert.id] = alert
-    logger.info(f"Alert {alert.id} generated for student {data.student_id}")
-    return {"alert": alert.model_dump(), "generated": True}
+    logger.info(f"Alerta {alert.id} guardada en memoria")
+    return {"alert": alert.model_dump(), "generated": True, "source": "memory"}
 
 @app.put("/api/alerts/{alert_id}/read")
 async def mark_read(alert_id: str):
+    if FIRESTORE_AVAILABLE and firestore_client:
+        try:
+            firestore_client.collection(ALERTS_COLLECTION).document(alert_id).update({"read": True})
+            logger.info(f"Alerta {alert_id} marcada como leida en Firestore")
+            return {"id": alert_id, "read": True, "source": "firestore"}
+        except Exception as e:
+            logger.warning(f"Error actualizando en Firestore: {e}")
+
     if alert_id in alerts_db:
         alerts_db[alert_id].read = True
-        logger.info(f"Alert {alert_id} marked as read")
-    return {"id": alert_id, "read": True}
+    return {"id": alert_id, "read": True, "source": "memory"}
 
 @app.post("/api/alerts/seed")
 async def seed_alerts():
     count = 0
     for alert in _get_mock_alerts():
-        alerts_db[alert.id] = alert
-        count += 1
-    logger.info(f"Seeded {count} mock alerts")
-    return {"seeded": count}
+        if FIRESTORE_AVAILABLE and firestore_client:
+            try:
+                firestore_client.collection(ALERTS_COLLECTION).document(alert.id).set(alert.model_dump())
+                count += 1
+            except:
+                pass
+        else:
+            alerts_db[alert.id] = alert
+            count += 1
+    logger.info(f"Seeded {count} alertas")
+    return {"seeded": count, "source": "firestore" if FIRESTORE_AVAILABLE else "memory"}
 
 def _get_mock_alerts() -> List[AlertOut]:
     now = datetime.utcnow()

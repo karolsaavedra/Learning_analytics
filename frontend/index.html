@@ -305,7 +305,8 @@
   /* ── Prediction form ────────────────────────────────────────────────────── */
   .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
   .form-group label { font-size: 11.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; display: block; margin-bottom: 7px; }
-  .form-group input {
+  .form-group input,
+  .form-group select {
     width: 100%;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -316,7 +317,9 @@
     font-size: 13.5px;
     transition: border-color .2s;
   }
-  .form-group input:focus { outline: none; border-color: var(--accent); }
+  .form-group input:focus,
+  .form-group select:focus { outline: none; border-color: var(--accent); }
+  .form-group select option { background: var(--surface); color: var(--text); }
   .btn-primary {
     background: linear-gradient(135deg, var(--accent), var(--accent2));
     color: #fff;
@@ -462,7 +465,7 @@
     <div class="topbar-right">
       <div class="live-chip"><div class="live-dot"></div>En vivo</div>
       <div class="topbar-pill">📅 Período 2026-I</div>
-      <div class="topbar-pill">🏛️ 47 Instituciones</div>
+      <div class="topbar-pill" id="inst-count-badge">🏛️ 47 Instituciones</div>
     </div>
   </header>
 
@@ -658,11 +661,7 @@
               <div style="font-size:13px;font-weight:700">Firebase</div>
               <div style="font-size:11px;color:var(--muted)">Realtime DB</div>
             </div>
-            <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;text-align:center">
-              <div style="font-size:28px;margin-bottom:8px">🍃</div>
-              <div style="font-size:13px;font-weight:700">MongoDB</div>
-              <div style="font-size:11px;color:var(--muted)">Data Lake</div>
-            </div>
+         
           </div>
         </div>
       </div>
@@ -677,30 +676,45 @@
             <div class="panel-badge">Random Forest + LR</div>
           </div>
           <div class="panel-body">
-            <div class="form-grid">
+            <div class="form-grid" style="grid-template-columns: repeat(2, 1fr);">
               <div class="form-group">
-                <label>Promedio de Notas (0–10)</label>
-                <input type="number" id="p-score" min="0" max="10" step="0.1" value="5.5" placeholder="Ej: 6.2">
+                <label>Institución</label>
+                <select id="p-institution" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--font-body);font-size:13.5px">
+                  <option value="">Seleccionar institución...</option>
+                </select>
               </div>
               <div class="form-group">
-                <label>Tasa de Asistencia (0–1)</label>
-                <input type="number" id="p-attend" min="0" max="1" step="0.01" value="0.72" placeholder="Ej: 0.75">
+                <label>Nombre del Estudiante</label>
+                <input type="text" id="p-name" value="" placeholder="Ej: Juan Pérez">
               </div>
               <div class="form-group">
-                <label>Entregas Tardías</label>
-                <input type="number" id="p-late" min="0" value="3" placeholder="Ej: 2">
-              </div>
-              <div class="form-group">
-                <label>Frecuencia Login / semana</label>
-                <input type="number" id="p-login" min="0" max="7" step="0.5" value="4" placeholder="Ej: 4">
-              </div>
-              <div class="form-group">
-                <label>Entregas a tiempo</label>
-                <input type="number" id="p-ontime" min="0" value="8" placeholder="Ej: 10">
+                <label>Carrera / Programa</label>
+                <input type="text" id="p-program" value="Ingeniería de Sistemas" placeholder="Ej: Ingeniería de Sistemas">
               </div>
               <div class="form-group">
                 <label>Semestre</label>
                 <input type="number" id="p-sem" min="1" max="10" value="2" placeholder="Ej: 3">
+              </div>
+            </div>
+            <div style="border-top:1px solid var(--border);margin:14px 0 16px;padding-top:14px">
+              <div style="font-size:11.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Datos Académicos</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Promedio de Notas (0–10)</label>
+                  <input type="number" id="p-score" min="0" max="10" step="0.1" value="5.5" placeholder="Ej: 6.2">
+                </div>
+                <div class="form-group">
+                  <label>Tasa de Asistencia (0–1)</label>
+                  <input type="number" id="p-attend" min="0" max="1" step="0.01" value="0.72" placeholder="Ej: 0.75">
+                </div>
+                <div class="form-group">
+                  <label>Entregas Tardías</label>
+                  <input type="number" id="p-late" min="0" value="3" placeholder="Ej: 2">
+                </div>
+                <div class="form-group">
+                  <label>Frecuencia Login / semana</label>
+                  <input type="number" id="p-login" min="0" max="7" step="0.5" value="4" placeholder="Ej: 4">
+                </div>
               </div>
             </div>
             <div style="display:flex;gap:10px">
@@ -714,18 +728,28 @@
             <div class="panel-title">Resultado de Predicción</div>
           </div>
           <div class="panel-body">
-            <div id="predict-placeholder" style="text-align:center;color:var(--muted);padding:48px 0;font-size:14px">
-              ⬅️ Ingresa los datos del estudiante<br>y presiona "Predecir Riesgo"
+            <div id="predict-placeholder" style="text-align:center;color:var(--muted);padding:32px 0;font-size:14px">
+              ⬅️ Completa los datos del estudiante<br>y presiona "Predecir Riesgo"
             </div>
             <div class="prediction-result" id="pred-result">
-              <div class="risk-gauge">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <div>
+                  <div style="font-size:13px;font-weight:600" id="pred-student-name">—</div>
+                  <div style="font-size:11.5px;color:var(--muted)" id="pred-student-info">—</div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-size:11px;color:var(--muted)" id="pred-student-status">—</div>
+                </div>
+              </div>
+              <div class="risk-gauge" style="padding:12px 0">
                 <div class="risk-number" id="pred-score">—</div>
                 <div class="risk-label-big" id="pred-level">—</div>
               </div>
-              <div style="margin-top:16px">
-                <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.8px">Factores detectados</div>
+              <div style="margin-top:12px">
+                <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px">Factores detectados</div>
                 <div id="pred-factors"></div>
               </div>
+              <div id="pred-alert-info" style="margin-top:10px;padding:10px 14px;border-radius:8px;display:none"></div>
             </div>
           </div>
         </div>
@@ -737,7 +761,7 @@
       <div class="panel">
         <div class="panel-header">
           <div class="panel-title">Instituciones de Educación Superior</div>
-          <div class="panel-badge">47 IES Conectadas</div>
+          <div class="panel-badge" id="inst-panel-badge">IES Conectadas</div>
         </div>
         <div class="panel-body" style="padding:0">
           <table class="inst-table">
@@ -920,6 +944,19 @@ const MOCK = {
   ],
 };
 
+// ── Chart instance registry (prevents duplicate canvas errors) ────────────
+const CHART_INSTANCES = {};
+
+function getOrCreateChart(id, config) {
+  if (CHART_INSTANCES[id]) {
+    CHART_INSTANCES[id].destroy();
+  }
+  const ctx = document.getElementById(id);
+  if (!ctx) return null;
+  CHART_INSTANCES[id] = new Chart(ctx, config);
+  return CHART_INSTANCES[id];
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 window.addEventListener('load', () => {
   setTimeout(() => {
@@ -929,11 +966,11 @@ window.addEventListener('load', () => {
 });
 
 async function renderAll() {
-  // Try to fetch from API, fall back to mock
-  const [apiStats, apiAlerts, apiEvents] = await Promise.all([
+  const [apiStats, apiAlerts, apiEvents, apiInstitutions] = await Promise.all([
     apiFetch('/dashboard/summary'),
     apiFetch('/alerts/'),
     apiFetch('/events/recent'),
+    apiFetch('/institutions'),
   ]);
 
   if (apiStats) {
@@ -941,6 +978,10 @@ async function renderAll() {
     if (apiStats.top_risk_courses) MOCK.courses = apiStats.top_risk_courses;
     if (apiStats.cluster_distribution) MOCK.clusters = apiStats.cluster_distribution;
     if (apiStats.risk_trend) MOCK.trends = apiStats.risk_trend;
+    // Actualizar badge de instituciones
+    if (apiStats.institutions_count) {
+      document.getElementById('inst-count-badge').textContent = '🏛️ ' + apiStats.institutions_count + ' Instituciones';
+    }
   }
   if (apiAlerts && apiAlerts.alerts) {
     MOCK.alerts = apiAlerts.alerts;
@@ -955,6 +996,22 @@ async function renderAll() {
       time: e.ts ? e.ts.split('T')[1]?.slice(0,5) : '--'
     }));
   }
+  // Poblar dropdown de instituciones
+  const instList = (apiInstitutions && apiInstitutions.institutions) ? apiInstitutions.institutions : MOCK.institutions;
+  if (apiInstitutions && apiInstitutions.institutions) {
+    MOCK.institutions = apiInstitutions.institutions;
+  }
+  const sel = document.getElementById('p-institution');
+  if (sel && instList && instList.length) {
+    const currentVal = sel.value;
+    sel.innerHTML = '<option value="">Seleccionar institución...</option>' +
+      instList.map(i =>
+        `<option value="${i.id}" ${i.id === currentVal ? 'selected' : ''}>${i.name}</option>`
+      ).join('');
+  }
+  // Actualizar badge del panel de instituciones
+  const badge = document.getElementById('inst-panel-badge');
+  if (badge) badge.textContent = (instList ? instList.length : 0) + ' IES Conectadas';
 
   renderKPIs();
   renderTrendChart();
@@ -968,10 +1025,12 @@ async function renderAll() {
 
 // ── KPIs ─────────────────────────────────────────────────────────────────────
 function renderKPIs() {
-  animateCount('kpi-total',   0, 12450,  1800);
-  animateCount('kpi-high',    0, 1876,   1600);
-  animateCount('kpi-alerts',  0, 234,    1400);
-  document.getElementById('events-today-badge').textContent = '1,243';
+  const s = MOCK.stats || {};
+  animateCount('kpi-total',   0, s.total_students || 12450,  1800);
+  animateCount('kpi-high',    0, s.students_high_risk || 1876,   1600);
+  document.getElementById('kpi-dropout').textContent = (s.national_dropout_rate ? (s.national_dropout_rate * 100).toFixed(1) + '%' : '18.7%');
+  animateCount('kpi-alerts',  0, s.active_alerts || 234,    1400);
+  document.getElementById('events-today-badge').textContent = (s.weekly_events ? s.weekly_events.toLocaleString() : '1,243');
 }
 
 function animateCount(id, from, to, dur) {
@@ -989,9 +1048,7 @@ function animateCount(id, from, to, dur) {
 
 // ── Trend chart ───────────────────────────────────────────────────────────────
 function renderTrendChart() {
-  const ctx = document.getElementById('trendChart');
-  if (!ctx) return;
-  new Chart(ctx, {
+  getOrCreateChart('trendChart', {
     type: 'line',
     data: {
       labels: MOCK.trends.map(t => t.week),
@@ -1022,13 +1079,12 @@ function renderTrendChart() {
 const CLUSTER_COLORS = [SUCCESS, ACCENT, WARNING, DANGER];
 
 function renderDonutChart() {
-  const ctx = document.getElementById('donutChart');
-  if (!ctx) return;
-  new Chart(ctx, {
+  const data = MOCK.clusters.map(c => c.pct || (c.count / (MOCK.clusters.reduce((a, b) => a + (b.count || 0), 0) || 1) * 100).toFixed(1));
+  getOrCreateChart('donutChart', {
     type: 'doughnut',
     data: {
       labels: MOCK.clusters.map(c => c.cluster),
-      datasets: [{ data: MOCK.clusters.map(c => c.pct), backgroundColor: CLUSTER_COLORS, borderWidth: 0, hoverOffset: 6 }]
+      datasets: [{ data: data, backgroundColor: CLUSTER_COLORS, borderWidth: 0, hoverOffset: 6 }]
     },
     options: {
       cutout: '68%',
@@ -1038,20 +1094,19 @@ function renderDonutChart() {
   });
   // Legend
   const leg = document.getElementById('cluster-legend');
+  leg.innerHTML = '';
   MOCK.clusters.forEach((c, i) => {
     leg.innerHTML += `<div class="cluster-item">
       <div class="cluster-dot" style="background:${CLUSTER_COLORS[i]}"></div>
       <span style="font-size:12px;color:var(--muted)">${c.cluster}</span>
-      <span class="cluster-count" style="color:${CLUSTER_COLORS[i]}">${c.count.toLocaleString()}</span>
+      <span class="cluster-count" style="color:${CLUSTER_COLORS[i]}">${(c.count || 0).toLocaleString()}</span>
     </div>`;
   });
 }
 
 // ── Courses chart ─────────────────────────────────────────────────────────
 function renderCoursesChart() {
-  const ctx = document.getElementById('coursesChart');
-  if (!ctx) return;
-  new Chart(ctx, {
+  getOrCreateChart('coursesChart', {
     type: 'bar',
     data: {
       labels: MOCK.courses.map(c => c.course),
@@ -1075,14 +1130,20 @@ function renderCoursesChart() {
 
 // ── Event types chart ─────────────────────────────────────────────────────
 function renderEventTypesChart() {
-  const ctx = document.getElementById('eventTypesChart');
-  if (!ctx) return;
-  new Chart(ctx, {
+  const weekly = (MOCK.stats && MOCK.stats.weekly_events) || 10000;
+  const data = [
+    Math.round(weekly * 0.32),
+    Math.round(weekly * 0.18),
+    Math.round(weekly * 0.14),
+    Math.round(weekly * 0.10),
+    Math.round(weekly * 0.06),
+  ];
+  getOrCreateChart('eventTypesChart', {
     type: 'polarArea',
     data: {
       labels: ['Login', 'Entregas', 'Quizzes', 'Commits', 'Tardías'],
       datasets: [{
-        data: [3200, 1800, 1400, 980, 596],
+        data: data,
         backgroundColor: ['rgba(0,212,255,.6)','rgba(0,229,160,.6)','rgba(124,58,255,.6)','rgba(255,107,53,.6)','rgba(255,59,92,.6)'],
         borderWidth: 0
       }]
@@ -1093,14 +1154,10 @@ function renderEventTypesChart() {
   });
 }
 
-// ── Analytics charts (lazy) ───────────────────────────────────────────────
-let analyticsInited = false;
+// ── Analytics charts (lazy, re-draws on each nav) ─────────────────────────
 function initAnalyticsCharts() {
-  if (analyticsInited) return;
-  analyticsInited = true;
 
-  const ctx1 = document.getElementById('analyticsChart');
-  new Chart(ctx1, {
+  getOrCreateChart('analyticsChart', {
     type: 'line',
     data: {
       labels: MOCK.trends.map(t => t.week),
@@ -1118,8 +1175,7 @@ function initAnalyticsCharts() {
     }
   });
 
-  const ctx2 = document.getElementById('coursesBarChart');
-  new Chart(ctx2, {
+  getOrCreateChart('coursesBarChart', {
     type: 'bar',
     data: {
       labels: MOCK.courses.map(c => c.course),
@@ -1144,18 +1200,23 @@ function initAnalyticsCharts() {
 function renderAlerts() {
   const list = document.getElementById('alerts-list');
   if (!list) return;
-  list.innerHTML = MOCK.alerts.map(a => `
-    <div class="alert-item" onclick="markRead('${a.id}', this)">
-      <div class="alert-dot ${a.risk_level}"></div>
+  list.innerHTML = (MOCK.alerts || []).map(a => {
+    const name = a.student_name || a.student_id || 'Desconocido';
+    const level = a.risk_level || 'medium';
+    const msg = a.message || 'Alerta generada';
+    const inst = a.institution_id || '';
+    const factors = a.factors || [];
+    return `<div class="alert-item" onclick="markRead('${a.id || ''}', this)">
+      <div class="alert-dot ${level}"></div>
       <div style="flex:1">
-        <div class="alert-name">${a.student_name} ${a.read ? '' : '<span style="color:var(--accent);font-size:10px;margin-left:6px">● NUEVO</span>'}</div>
-        <div class="alert-msg">${a.message} — <em style="font-size:11px">${a.institution_id}</em></div>
-        <div class="alert-tags">${a.factors.map(f => `<span class="tag">${f}</span>`).join('')}</div>
+        <div class="alert-name">${name} ${a.read ? '' : '<span style="color:var(--accent);font-size:10px;margin-left:6px">● NUEVO</span>'}</div>
+        <div class="alert-msg">${msg}${inst ? ' — <em style="font-size:11px">' + inst + '</em>' : ''}</div>
+        <div class="alert-tags">${factors.map(f => `<span class="tag">${f}</span>`).join('')}</div>
       </div>
-      <div class="alert-risk risk-${a.risk_level}">${a.risk_level.toUpperCase()}</div>
-    </div>
-  `).join('');
-  document.getElementById('alerts-count-badge').textContent = MOCK.alerts.length + ' alertas';
+      <div class="alert-risk risk-${level}">${level.toUpperCase()}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('alerts-count-badge').textContent = (MOCK.alerts || []).length + ' alertas';
 }
 
 function markRead(id, el) {
@@ -1163,19 +1224,26 @@ function markRead(id, el) {
 }
 
 // ── Events feed ───────────────────────────────────────────────────────────
+const EVENT_ICONS = { login:'🔐', assignment_submit:'📝', late_submission:'⚠️', quiz_complete:'✅', code_commit:'💻', video_watch:'▶️', forum_post:'💬' };
+
 function renderEvents() {
   const feed = document.getElementById('events-feed');
   if (!feed) return;
-  feed.innerHTML = MOCK.events.map(e => `
-    <div class="event-item">
-      <div class="event-icon">${e.icon}</div>
+  feed.innerHTML = (MOCK.events || []).map(e => {
+    const icon = e.icon || EVENT_ICONS[e.type] || '📌';
+    const student = e.student || e.student_id || 'Desconocido';
+    const type = (e.type || 'event').replace(/_/g, ' ');
+    const course = e.course || e.course_id || '';
+    const time = e.time || (e.ts ? e.ts.split('T')[1]?.slice(0,5) : '--');
+    return `<div class="event-item">
+      <div class="event-icon">${icon}</div>
       <div>
-        <div class="event-student">${e.student}</div>
-        <div class="event-course">${e.type.replace('_',' ')} · ${e.course}</div>
+        <div class="event-student">${student}</div>
+        <div class="event-course">${type}${course ? ' · ' + course : ''}</div>
       </div>
-      <div class="event-time">${e.time}</div>
-    </div>
-  `).join('');
+      <div class="event-time">${time}</div>
+    </div>`;
+  }).join('');
 }
 
 // ── Institutions ──────────────────────────────────────────────────────────
@@ -1183,43 +1251,57 @@ function renderInstitutions() {
   const tbody = document.getElementById('inst-tbody');
   if (!tbody) return;
   tbody.innerHTML = MOCK.institutions.map(inst => {
-    const pct = (inst.risk_rate * 100).toFixed(0);
-    const color = inst.risk_rate > 0.25 ? DANGER : inst.risk_rate > 0.18 ? WARNING : SUCCESS;
+    const students = inst.students || inst.total_students || 0;
+    const riskRate = inst.risk_rate || 0;
+    const pct = (riskRate * 100).toFixed(0);
+    const color = riskRate > 0.25 ? DANGER : riskRate > 0.18 ? WARNING : SUCCESS;
+    const city = inst.city || '—';
+    const name = inst.name || 'Sin nombre';
     return `<tr>
-      <td><strong>${inst.name}</strong></td>
-      <td style="color:var(--muted)">${inst.city}</td>
-      <td>${inst.students.toLocaleString()}</td>
+      <td><strong>${name}</strong></td>
+      <td style="color:var(--muted)">${city}</td>
+      <td>${students.toLocaleString()}</td>
       <td>
         <div style="display:flex;align-items:center;gap:10px">
           <div class="risk-bar"><div class="risk-bar-fill" style="width:${pct}%;background:${color}"></div></div>
           <span style="color:${color};font-weight:700;font-size:13px">${pct}%</span>
         </div>
       </td>
-      <td><span style="color:var(--success);font-size:11px;font-weight:700">● ACTIVA</span></td>
+      <td><span style="color:var(--success);font-size:11px;font-weight:700">● ${inst.active ? 'ACTIVA' : 'INACTIVA'}</span></td>
     </tr>`;
   }).join('');
 }
 
 // ── AI Prediction (calls analytics microservice API) ──────────────────────
 async function runPrediction() {
-  const score   = parseFloat(document.getElementById('p-score').value)   || 5;
-  const attend  = parseFloat(document.getElementById('p-attend').value)  || 0.7;
-  const late    = parseInt(document.getElementById('p-late').value)      || 0;
-  const login   = parseFloat(document.getElementById('p-login').value)   || 3;
+  const name    = document.getElementById('p-name').value.trim();
+  const inst    = document.getElementById('p-institution').value;
+  const program = document.getElementById('p-program').value.trim() || 'General';
+  const sem     = parseInt(document.getElementById('p-sem').value) || 1;
+  const score   = parseFloat(document.getElementById('p-score').value) || 5;
+  const attend  = parseFloat(document.getElementById('p-attend').value) || 0.7;
+  const late    = parseInt(document.getElementById('p-late').value) || 0;
+  const login   = parseFloat(document.getElementById('p-login').value) || 3;
 
-  // Show loading state
+  // Validacion
+  if (!name) return alert('Ingresa el nombre del estudiante');
+  if (!inst) return alert('Selecciona una institución');
+
+  // Show loading
   document.getElementById('predict-placeholder').style.display = 'none';
   const res = document.getElementById('pred-result');
   res.classList.add('show');
   document.getElementById('pred-score').textContent = '...';
-  document.getElementById('pred-level').textContent = 'Consultando API...';
+  document.getElementById('pred-level').textContent = 'Procesando...';
 
-  // Try to call analytics microservice via API Gateway
+  // Llamar a la API (crea estudiante si no existe + predice + alerta)
   const result = await apiFetch('/analytics/predict', {
     method: 'POST',
     body: JSON.stringify({
-      student_id: 'web_' + Date.now(),
-      institution_id: 'UNAL',
+      student_name: name,
+      institution_id: inst,
+      program: program,
+      semester: sem,
       avg_score: score,
       attendance_rate: attend,
       late_submissions: late,
@@ -1233,21 +1315,72 @@ async function runPrediction() {
     riskScore = result.risk_score;
     level = { low:'BAJO', medium:'MEDIO', high:'ALTO', critical:'CRÍTICO' }[result.risk_level] || 'DESCONOCIDO';
     factors = result.factors || [];
+
+    // Mostrar datos del estudiante
+    document.getElementById('pred-student-name').textContent = name;
+    document.getElementById('pred-student-info').textContent = program + ' · Sem ' + sem + ' · ' + inst;
+    document.getElementById('pred-student-status').textContent = result.student_created ? '✅ Nuevo estudiante' : '↻ Estudiante existente';
+
+    // Mostrar info de alerta
+    const alertDiv = document.getElementById('pred-alert-info');
     if (result.alert_generated) {
-      factors.push('✅ Alerta generada automáticamente por el sistema');
+      alertDiv.style.display = 'block';
+      alertDiv.style.background = 'rgba(0,229,160,.1)';
+      alertDiv.style.border = '1px solid rgba(0,229,160,.3)';
+      alertDiv.style.color = 'var(--success)';
+      alertDiv.textContent = '🚨 Alerta generada automáticamente por alto riesgo';
+      factors.push('✅ Alerta generada por el sistema');
+    } else {
+      alertDiv.style.display = 'none';
+    }
+
+    // Refrescar alerts, dashboard, instituciones, y graficos
+    const [freshAlerts, freshStats, freshInstitutions] = await Promise.all([
+      apiFetch('/alerts/'),
+      apiFetch('/dashboard/summary'),
+      apiFetch('/institutions'),
+    ]);
+    if (freshAlerts && freshAlerts.alerts) {
+      MOCK.alerts = freshAlerts.alerts;
+      renderAlerts();
+    }
+    if (freshStats) {
+      MOCK.stats = freshStats;
+      if (freshStats.institutions_count) {
+        document.getElementById('inst-count-badge').textContent = '🏛️ ' + freshStats.institutions_count + ' Instituciones';
+      }
+      // Actualizar datos para graficos
+      if (freshStats.top_risk_courses) MOCK.courses = freshStats.top_risk_courses;
+      if (freshStats.cluster_distribution) MOCK.clusters = freshStats.cluster_distribution;
+      if (freshStats.risk_trend) MOCK.trends = freshStats.risk_trend;
+      renderKPIs();
+      renderTrendChart();
+      renderDonutChart();
+      renderCoursesChart();
+      renderEventTypesChart();
+    }
+    if (freshInstitutions && freshInstitutions.institutions) {
+      MOCK.institutions = freshInstitutions.institutions;
+      renderInstitutions();
+      // Re-poblar dropdown de instituciones con datos actualizados
+      const sel = document.getElementById('p-institution');
+      if (sel) {
+        const currentVal = sel.value;
+        sel.innerHTML = '<option value="">Seleccionar institución...</option>' +
+          MOCK.institutions.map(i =>
+            `<option value="${i.id}" ${i.id === currentVal ? 'selected' : ''}>${i.name}</option>`
+          ).join('');
+      }
     }
   } else {
-    // Fallback to client-side calculation
+    // Fallback local
     riskScore = Math.min(1, Math.max(0,
       (1 - score / 10) * 0.35 +
       (1 - attend)     * 0.30 +
       (late / 10)      * 0.20 +
       (1 - login / 7)  * 0.15
     ));
-    if (riskScore >= 0.8)      { level = 'CRÍTICO'; }
-    else if (riskScore >= 0.6) { level = 'ALTO'; }
-    else if (riskScore >= 0.3) { level = 'MEDIO'; }
-    else                       { level = 'BAJO'; }
+    level = riskScore >= 0.8 ? 'CRÍTICO' : riskScore >= 0.6 ? 'ALTO' : riskScore >= 0.3 ? 'MEDIO' : 'BAJO';
     factors = [];
     if (score < 4)     factors.push('Promedio por debajo del mínimo (' + score + ')');
     if (attend < 0.7)  factors.push('Asistencia inferior al 70% (' + (attend*100).toFixed(0) + '%)');
@@ -1272,6 +1405,7 @@ async function runPrediction() {
 function resetPrediction() {
   document.getElementById('predict-placeholder').style.display = 'block';
   document.getElementById('pred-result').classList.remove('show');
+  document.getElementById('pred-alert-info').style.display = 'none';
 }
 
 function exportReport() {

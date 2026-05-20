@@ -31,6 +31,7 @@ SERVICE_MAP = {
     "/api/dashboard": os.getenv("DASHBOARD_SERVICE_URL", "http://dashboard-service:8004"),
     "/api/institutions": os.getenv("DASHBOARD_SERVICE_URL", "http://dashboard-service:8004"),
     "/api/reports": os.getenv("DASHBOARD_SERVICE_URL", "http://dashboard-service:8004"),
+    "/api/students": os.getenv("DASHBOARD_SERVICE_URL", "http://dashboard-service:8004"),
 }
 
 @app.get("/")
