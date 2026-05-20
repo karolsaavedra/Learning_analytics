@@ -1,5 +1,5 @@
-// API Service — Model Layer (communicates with FastAPI backend)
-const BASE_URL = "http://localhost:8000/api";
+// API Service — Model Layer (communicates via API Gateway / nginx proxy)
+const BASE_URL = window.location.origin + "/api";
 
 const api = {
   async get(path) {

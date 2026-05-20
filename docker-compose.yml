@@ -1,0 +1,124 @@
+version: "3.9"
+
+networks:
+  learning-analytics-net:
+    driver: bridge
+
+services:
+
+  # ── API Gateway ────────────────────────────────────────────────────────────
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - EVENT_SERVICE_URL=http://event-service:8001
+      - ANALYTICS_SERVICE_URL=http://analytics-service:8002
+      - ALERT_SERVICE_URL=http://alert-service:8003
+      - DASHBOARD_SERVICE_URL=http://dashboard-service:8004
+    depends_on:
+      event-service:
+        condition: service_started
+      analytics-service:
+        condition: service_started
+      alert-service:
+        condition: service_started
+      dashboard-service:
+        condition: service_started
+    networks:
+      - learning-analytics-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Event Service ──────────────────────────────────────────────────────────
+  event-service:
+    build: ./event-service
+    container_name: event-service
+    ports:
+      - "8001:8001"
+    networks:
+      - learning-analytics-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Analytics Service (ML / IA Predictiva) ─────────────────────────────────
+  analytics-service:
+    build: ./analytics-service
+    container_name: analytics-service
+    ports:
+      - "8002:8002"
+    environment:
+      - ALERT_SERVICE_URL=http://alert-service:8003
+    depends_on:
+      alert-service:
+        condition: service_started
+    networks:
+      - learning-analytics-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Alert Service ──────────────────────────────────────────────────────────
+  alert-service:
+    build: ./alert-service
+    container_name: alert-service
+    ports:
+      - "8003:8003"
+    networks:
+      - learning-analytics-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Dashboard Service (Aggregator) ─────────────────────────────────────────
+  dashboard-service:
+    build: ./dashboard-service
+    container_name: dashboard-service
+    ports:
+      - "8004:8004"
+    environment:
+      - ANALYTICS_SERVICE_URL=http://analytics-service:8002
+      - ALERT_SERVICE_URL=http://alert-service:8003
+      - EVENT_SERVICE_URL=http://event-service:8001
+    depends_on:
+      analytics-service:
+        condition: service_started
+      alert-service:
+        condition: service_started
+      event-service:
+        condition: service_started
+    networks:
+      - learning-analytics-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Frontend (nginx) ───────────────────────────────────────────────────────
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - learning-analytics-net
+    restart: unless-stopped

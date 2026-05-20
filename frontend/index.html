@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -818,6 +819,21 @@
 <!-- Chart.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
+// ── API config (via nginx proxy to API Gateway) ────────────────────────────
+const API_BASE = window.location.origin + '/api';
+
+async function apiFetch(path, options = {}) {
+  try {
+    const r = await fetch(`${API_BASE}${path}`, {
+      headers: { 'Content-Type': 'application/json', ...options.headers },
+      ...options
+    });
+    return await r.json();
+  } catch {
+    return null;
+  }
+}
+
 // ── Chart defaults ──────────────────────────────────────────────────────────
 Chart.defaults.color = '#5a7499';
 Chart.defaults.borderColor = '#1e2d45';
@@ -912,7 +928,34 @@ window.addEventListener('load', () => {
   }, 1900);
 });
 
-function renderAll() {
+async function renderAll() {
+  // Try to fetch from API, fall back to mock
+  const [apiStats, apiAlerts, apiEvents] = await Promise.all([
+    apiFetch('/dashboard/summary'),
+    apiFetch('/alerts/'),
+    apiFetch('/events/recent'),
+  ]);
+
+  if (apiStats) {
+    MOCK.stats = apiStats;
+    if (apiStats.top_risk_courses) MOCK.courses = apiStats.top_risk_courses;
+    if (apiStats.cluster_distribution) MOCK.clusters = apiStats.cluster_distribution;
+    if (apiStats.risk_trend) MOCK.trends = apiStats.risk_trend;
+  }
+  if (apiAlerts && apiAlerts.alerts) {
+    MOCK.alerts = apiAlerts.alerts;
+    document.getElementById('alert-badge').textContent = apiAlerts.total || apiAlerts.alerts.length;
+  }
+  if (apiEvents && apiEvents.events) {
+    MOCK.events = apiEvents.events.map(e => ({
+      ...e,
+      icon: { login:'🔐', assignment_submit:'📝', late_submission:'⚠️', quiz_complete:'✅', code_commit:'💻', video_watch:'▶️', forum_post:'💬' }[e.type] || '📌',
+      student: e.student,
+      course: e.course,
+      time: e.ts ? e.ts.split('T')[1]?.slice(0,5) : '--'
+    }));
+  }
+
   renderKPIs();
   renderTrendChart();
   renderDonutChart();
@@ -1157,39 +1200,64 @@ function renderInstitutions() {
   }).join('');
 }
 
-// ── AI Prediction (client-side simulation) ────────────────────────────────
-function runPrediction() {
+// ── AI Prediction (calls analytics microservice API) ──────────────────────
+async function runPrediction() {
   const score   = parseFloat(document.getElementById('p-score').value)   || 5;
   const attend  = parseFloat(document.getElementById('p-attend').value)  || 0.7;
   const late    = parseInt(document.getElementById('p-late').value)      || 0;
   const login   = parseFloat(document.getElementById('p-login').value)   || 3;
-  const ontime  = parseInt(document.getElementById('p-ontime').value)    || 8;
 
-  // Weighted risk formula (mirrors backend logic)
-  const riskScore = Math.min(1, Math.max(0,
-    (1 - score / 10) * 0.35 +
-    (1 - attend)     * 0.30 +
-    (late / 10)      * 0.20 +
-    (1 - login / 7)  * 0.15
-  ));
-
-  let level, color;
-  if (riskScore >= 0.8)      { level = 'CRÍTICO';  color = DANGER;  }
-  else if (riskScore >= 0.6) { level = 'ALTO';     color = WARNING; }
-  else if (riskScore >= 0.3) { level = 'MEDIO';    color = ACCENT;  }
-  else                       { level = 'BAJO';     color = SUCCESS; }
-
-  const factors = [];
-  if (score < 4)     factors.push('Promedio por debajo del mínimo (' + score + ')');
-  if (attend < 0.7)  factors.push('Asistencia inferior al 70% (' + (attend*100).toFixed(0) + '%)');
-  if (late > 3)      factors.push('Alta cantidad de entregas tardías (' + late + ')');
-  if (login < 2)     factors.push('Baja frecuencia de acceso (' + login + 'x/semana)');
-  if (!factors.length) factors.push('Sin factores críticos detectados');
-
-  // Show result
+  // Show loading state
   document.getElementById('predict-placeholder').style.display = 'none';
   const res = document.getElementById('pred-result');
   res.classList.add('show');
+  document.getElementById('pred-score').textContent = '...';
+  document.getElementById('pred-level').textContent = 'Consultando API...';
+
+  // Try to call analytics microservice via API Gateway
+  const result = await apiFetch('/analytics/predict', {
+    method: 'POST',
+    body: JSON.stringify({
+      student_id: 'web_' + Date.now(),
+      institution_id: 'UNAL',
+      avg_score: score,
+      attendance_rate: attend,
+      late_submissions: late,
+      login_frequency: login
+    })
+  });
+
+  let riskScore, level, color, factors;
+
+  if (result && result.risk_score !== undefined) {
+    riskScore = result.risk_score;
+    level = { low:'BAJO', medium:'MEDIO', high:'ALTO', critical:'CRÍTICO' }[result.risk_level] || 'DESCONOCIDO';
+    factors = result.factors || [];
+    if (result.alert_generated) {
+      factors.push('✅ Alerta generada automáticamente por el sistema');
+    }
+  } else {
+    // Fallback to client-side calculation
+    riskScore = Math.min(1, Math.max(0,
+      (1 - score / 10) * 0.35 +
+      (1 - attend)     * 0.30 +
+      (late / 10)      * 0.20 +
+      (1 - login / 7)  * 0.15
+    ));
+    if (riskScore >= 0.8)      { level = 'CRÍTICO'; }
+    else if (riskScore >= 0.6) { level = 'ALTO'; }
+    else if (riskScore >= 0.3) { level = 'MEDIO'; }
+    else                       { level = 'BAJO'; }
+    factors = [];
+    if (score < 4)     factors.push('Promedio por debajo del mínimo (' + score + ')');
+    if (attend < 0.7)  factors.push('Asistencia inferior al 70% (' + (attend*100).toFixed(0) + '%)');
+    if (late > 3)      factors.push('Alta cantidad de entregas tardías (' + late + ')');
+    if (login < 2)     factors.push('Baja frecuencia de acceso (' + login + 'x/semana)');
+    if (!factors.length) factors.push('Sin factores críticos detectados (fallback local)');
+  }
+
+  color = riskScore >= 0.8 ? DANGER : riskScore >= 0.6 ? WARNING : riskScore >= 0.3 ? ACCENT : SUCCESS;
+
   document.getElementById('pred-score').textContent = (riskScore * 100).toFixed(1) + '%';
   document.getElementById('pred-score').style.color = color;
   document.getElementById('pred-level').textContent = level;
